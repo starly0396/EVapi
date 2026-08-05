@@ -21,6 +21,35 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def read_root():
     return {"status": "ok", "message": "API Server is Running"}
 
+@app.get("/make_db_tbale")
+def mktb():
+    db_url = DATABASE_URL.replace("postgres://", "postgresql://")
+    engine = create_engine(db_url)
+    
+    with engine.connect() as conn:
+        conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS projects (
+            id SERIAL PRIMARY KEY,
+            topic TEXT NOT NULL,
+            change_prmpt1 TEXT NOT NULL,
+            change_log1 TEXT NOT NULL,
+            change_prmpt2 TEXT,
+            change_log2 TEXT,
+            change_prmpt3 TEXT,
+            change_log3 TEXT,
+            change_prmpt4 TEXT,
+            change_log4 TEXT,
+        );
+        """))
+
+@app.post("/save/prjt")
+def save_pjt(prmpt_txt: str, code_ctnt: str):
+    db_url = DATABASE_URL.replace("postgres://", "postgresql://")
+    engine = create_engine(db_url)
+    
+    with engine.connect() as conn:
+        conn.execute(text("""insert into projects (topic,change_prmpt1,change_log1) value (:tpc,:prmpt,:log)"""),{"tpc":prmpt_txt,"prmpt":prmpt_txt,"log":code_ctnt})
+
 # Neon DB 테스트용 API
 @app.get("/db-test")
 def test_db():
