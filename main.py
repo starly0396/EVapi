@@ -31,24 +31,53 @@ def mktb():
         CREATE TABLE IF NOT EXISTS projects (
             id SERIAL PRIMARY KEY,
             topic TEXT NOT NULL,
-            change_prmpt1 TEXT NOT NULL,
-            change_log1 TEXT NOT NULL,
+            change_prmpt1 TEXT,
+            change_log1 TEXT,
             change_prmpt2 TEXT,
             change_log2 TEXT,
             change_prmpt3 TEXT,
             change_log3 TEXT,
             change_prmpt4 TEXT,
-            change_log4 TEXT,
+            change_log4 TEXT
         );
         """))
 
-@app.post("/save/prjt")
+@app.post("/save/pjt")
 def save_pjt(prmpt_txt: str, code_ctnt: str):
     db_url = DATABASE_URL.replace("postgres://", "postgresql://")
     engine = create_engine(db_url)
     
     with engine.connect() as conn:
-        conn.execute(text("""insert into projects (topic,change_prmpt1,change_log1) value (:tpc,:prmpt,:log)"""),{"tpc":prmpt_txt,"prmpt":prmpt_txt,"log":code_ctnt})
+        conn.execute(text("""insert into projects (topic,change_prmpt1,change_log1) values (:tpc,:prmpt,:log)"""),{"tpc":prmpt_txt,"prmpt":prmpt_txt,"log":code_ctnt})
+        if conn.execute(text("SELECT COUNT(*) FROM projects")).fetchone()[0]>=6:
+            conn.execute(text("delete from projects where id = (select min(id) from projects)"))
+                
+        conn.commit()
+
+@app.post("/save/{pjt_id}/log")
+def save_log(pjt_id:int, prmpt_txt: str, code_ctnt: str):
+    db_url = DATABASE_URL.replace("postgres://", "postgresql://")
+    engine = create_engine(db_url)
+
+    with engine.connect() as conn:
+        conn.execute(
+            text("""
+                UPDATE projects
+                SET 
+                    change_prmpt4 = change_prmpt3,
+                    change_log4   = change_log3,
+                    change_prmpt3 = change_prmpt2,
+                    change_log3   = change_log2,
+                    change_prmpt2 = change_prmpt1,
+                    change_log2   = change_log1,
+                    change_prmpt1 = :prmpt,
+                    change_log1   = :log
+                WHERE id = :pjt_id
+            """),
+            {"pjt_id": pjt_id, "prmpt": prmpt_txt, "log": code_ctnt}
+        )
+
+        conn.commit()
 
 # Neon DB 테스트용 API
 @app.get("/db-test")
