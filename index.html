@@ -1162,7 +1162,7 @@
         body: JSON.stringify({
           contents: buildGeminiContents(history),
           systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          generationConfig: { maxOutputTokens: 8192 }
+          generationConfig: { maxOutputTokens: 65536 }
         })
       });
       if(!response.ok || !response.body){
